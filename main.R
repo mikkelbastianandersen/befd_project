@@ -28,6 +28,8 @@ library(DIMORA)
 
 data = read_excel("data.xlsx")
 
+exports_france_value_index = mutate(data,exports_france_value_index = exports_france_value/)
+
 #Create tables from the big table data
 consumption_france = data$cons_france_volume
 consumption_world = data$cons_world_volume
@@ -37,8 +39,11 @@ production_italy = data$prod_italy_volume
 production_spain = data$prod_spain_volume
 exports_france_value = data$exp_france_value  
 exports_france_volume = data$exp_france_volume
-
+years = data$year
 selected_years <- data$year[seq(1, length(data$year), by = 5)]
+
+
+
 
 ####################
 #       Plots      #
@@ -83,6 +88,27 @@ axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 plot(exports_france_value, type= "b",main="Wine exports of France", xlab="Year", ylab="Value ($)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
 axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 dev.off()
+
+
+
+
+###Plots for export from France in value vs. volume
+### I make indexvalues starting from 2000
+
+exports_france_value <- as.numeric(exports_france_value)
+exports_france_value_index = (exports_france_value[6:28]/exports_france_value[6])*100
+exports_france_volume_index = (exports_france_volume[6:28]/exports_france_volume[6])*100
+
+
+
+plot(exports_france_value_index, type= "b",main="Exported value vs volume", xlab="Year", ylab="Volume (1000hl)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6, ylim=c(70,300))
+lines(exports_france_volume_index, type = "l", col = "red")
+legend("topright", legend = c("Export value", "Export volume"), col = c("black", "red"), lwd = 2, cex = 0.6)
+
+selected_years2 <- data$year[seq(6, length(data$year), by = 5)]
+
+axis(side = 1, at = seq(1, length(years)-5, by = 5), labels = selected_years2)
+
 
 
 ####################
