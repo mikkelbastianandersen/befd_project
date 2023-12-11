@@ -33,9 +33,9 @@ library(fpp2)
 #    Import Data   #
 ####################
 
-data = read_excel("befd_project/data.xlsx")
+data = read_excel("data.xlsx")
 data$exp_france_value = as.numeric(data$exp_france_value)
-data = data[6:28,]
+
 ## create new columns
 
 
@@ -75,6 +75,9 @@ selected_years <- data$year[seq(1, length(data$year), by = 5)]
 
 
 ### GDP of France
+
+
+par(mfrow=c(2,2))
 plot(gdp_france_billions, type= "b",main="GDP of France", xlab="Year", ylab="Value (in billions of $)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
 axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 
@@ -133,7 +136,7 @@ cor(gdp_france,exports_france_value, method="pearson") #=> 61%
 
 #### Correlation matric
 ##### Selecting only the relevant columns for this
-corrplot(cor(data[,c(2,3,4,6,7,8,9,10,11,12,13)]), method = "circle", tl.col = "black")
+corrplot(cor(data[,c(10,9,2,3,4,6,7,8,11,12,13)]), method = "circle", tl.col = "black")
 
 
 
@@ -154,8 +157,9 @@ fit1 <- lm(exports_france_value_billions~ tt)
 summary(fit1)
 
 ##plot of the model
-plot(tt, exports_france_value_billions, xlab="Time", ylab="Export of wine in billions of €")
+plot(tt, exports_france_value_billions, main = "Export of wine (in billions of €)", xlab="Year", ylab="Export of wine in billions of €", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
 abline(fit1, col=3)
+axis(side = 1, at = seq(1, length(years), by = 5), labels = selected_years)
 
 #### Testing if the residuals are autocorrelated
 dwtest(fit1)
@@ -208,7 +212,7 @@ axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 #acf peaks decrease slowly, confirming the presence of a linear trend
 tsdisplay(exports_france_value) 
 
-#first difference 
+#first differentation
 exports_france_value.diff <- diff(exports_france_value,differences=1)
 
 #it's better and we can see that there is no seasonality
@@ -220,7 +224,7 @@ tsdisplay(exports_france_value.diff)
 ############
 #first model  -> AIC = 52.44 
 ############
-auto.a<- auto.arima(exports_france_value[6:28])
+auto.a<- auto.arima(exports_france_value_billions)
 auto.a 
 #ARIMA(p,d,q) here : ARIMA(0,1,0), so the auto ARIMA do just the fist difference and then AR(0) / MA(0)
 #AIC = 52.44 
@@ -230,10 +234,10 @@ auto.a
 checkresiduals(auto.a)
 
 #plot target and the fitted model
-plot(exports_france_value[6:28], type= "b",main="Wine exports of France fitted with ARIMA(0,1,0)", xlab="Year", ylab="Value ($)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
+plot(exports_france_value_billions, type= "b",main="Wine exports of France fitted with ARIMA(0,1,0)", xlab="Year", ylab="Value ($)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
 fit1<- fitted(auto.a)
 lines(fit1, col=2)
-axis(side = 1, at = seq(1, length(data$year)-5, by = 5), labels = selected_years2)
+axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 
 ##shift of one year ?????????
 
@@ -241,30 +245,7 @@ axis(side = 1, at = seq(1, length(data$year)-5, by = 5), labels = selected_years
 autoplot(forecast(auto.a))
 
 
-#############
-#second model   -> AIC = 59.65
-#############
 
-a2<- Arima(exports_france_value, order=c(3,1,0))
-#ARIMA(3,1,0) so AR(3) / MA(0)
-a2 #AIC = 59.65
-
-#check residuals (=> white noise)
-checkresiduals(a2)
-
-plot(exports_france_value, type= "b",main="Wine exports of France fitted with ARIMA(3,1,0)", xlab="Year", ylab="Value ($)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
-fit2<- fitted(a2)
-lines(fit2, col=2)
-axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
-
-#plot the forecast
-autoplot(forecast(a2))
-
-
-
-# 
-# We can conclude for the ARIMA that ARIMA(0,1,0) is the best with an AIC = 52.44 
-# 
 
 #Forecast 
 
@@ -272,13 +253,13 @@ autoplot(forecast(a2))
 year_forecast = 5
 forecast.ARIMA = forecast(auto.a)
 
-plot(exports_france_value,xlim=c(0,23+year_forecast),ylim=c(5,20),type= "b",main="France Wine exports forecast", xlab="Year", ylab="Value ($)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
+plot(exports_france_value_billions,xlim=c(0,23+year_forecast),ylim=c(5,20),type= "b",main="France Wine exports forecast", xlab="Year", ylab="Value ($)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
 
 lines(forecast.ARIMA$upper[,2],col="blue",lty=2,type= "b",pch=16, lwd=2, cex=0.6)
 lines(forecast.ARIMA$mean,col="red",lty=2,type= "b",pch=16, lwd=2, cex=0.6)
 lines(forecast.ARIMA$lower[,2],col="blue",lty=2,type= "b",pch=16, lwd=2, cex=0.6)
 legend("topright",legend=c("Upper and lower bands", "Mean forecasting"),col=c("blue","red"),pch=3,lty = 1, lwd = 2, cex = 0.6)
-axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
+axis(side = 1, at = seq(1, length(data$year)+5, by = 5), labels = c(selected_years,c(2025)))
 
 
 
