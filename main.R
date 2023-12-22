@@ -3,6 +3,23 @@
 
 
 ####################
+# Check list for the models #
+# Simple regression - Check
+#     We can see a clear linear trend from this
+# Multiple regression - Check
+#     This performs very well, but how do we check for overfitting?
+# ARIMA - Check
+#     The auto.arima suggests an ARIMA(0,1,0) model which is just a random walk
+#     This suggests that the ARIMA model is not appropriate for our data
+# Bass Model (BM) - Check
+#     Seems to work okay, but it looks alot like the simple regression
+# Generalized Bass Model (GBM) - 
+
+####################
+
+
+
+####################
 # Import libraries #
 ####################
 
@@ -139,20 +156,8 @@ dwtest(fit1)
 
 #### Plotting the residuals
 resfit1<- residuals(fit1)
-plot(resfit1,xlab="Time", ylab="residuals" )
-
-
-#### TSLM Model gives the exact same results obviously
-exports_france_value_billions.ts <- ts(exports_france_value_billions, frequency = 1)
-ts.plot(exports_france_value_billions.ts, type="o")
-
-## we fit a linear model with the tslm function
-fitts<- tslm(exports_france_value_billions.ts~trend)
-summary(fitts)
-dwtest(fitts)
-
-
-
+plot(resfit1,xlab="Time", ylab="residuals",xaxt="n", pch=20, lty=5, lwd=5, cex=0.6,col = "blue")
+axis(side = 1, at = seq(1, length(years), by = 5), labels = selected_years)
 
 
 
@@ -194,16 +199,12 @@ axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 #########
 ### ARIMA 
 #########
-#there is a trend so the time series is not stationary 
-
-
-plot(exports_france_value_billions, type= "b",main="France wine exports", xlab="Year", ylab="Value (in millions of $)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
-axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
-
-#acf peaks decrease slowly, confirming the presence of a linear trend
 tsdisplay(exports_france_value) 
 
-#first differentiation
+
+### WE HAVE A CLEAR LINEAR TREND SO WE NEED TO DO DIFFERENCING
+
+#first differencing
 exports_france_value.diff <- diff(exports_france_value,differences=1)
 
 #it's better and we can see that there is no seasonality
@@ -220,9 +221,9 @@ auto.a
 AIC(auto.a) #=> AIC = 52.43
 
 #ARIMA(p,d,q) here : ARIMA(0,1,0), so the auto ARIMA do just the fist difference and then AR(0) / MA(0)
-
+#ARIMA(0,1,0) is just a random walk so Y_t = Y_(t-1) + average_trend
 #check residuals (=> white noise) 
-#why ? -> graph of residuals / ACF : peaks in the bands / mean = 0 / Ljung-Box test : Q* = 4.224 
+
 checkresiduals(auto.a)
 
 #plot target and the fitted model
@@ -262,7 +263,7 @@ axis(side = 1, at = seq(1, length(data$year)+5, by = 5), labels = c(selected_yea
 
 bm_exports_france_value_billions<-BM(exports_france_value_billions,display = T)
 summary(bm_exports_france_value_billions)
-#m and q non-significant and we don't take into account the shocks
+#m and p non-significant and we don't take into account the shocks
 
 pred_bm<- predict(bm_exports_france_value_billions, newx = c(1:30)) #newx : time windows
 pred.inst<- make.instantaneous(pred_bm)
@@ -276,30 +277,67 @@ lines(pred.inst, lwd=2, col=2)
 axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 
 
+
+
+
+######
+### GBM 
+######
+
+
 #GBM with 2 shocks (one in 2009 and one in 2020) 
 
+
+## estimates from BM
 m = 3.784530e+03
 p = 1.315909e-03
 q = 3.506564e-02
 
 
-#exponential
-
-GBMe<- GBM(exports_france_value_billions, shock = "exp",nshock = 1,prelimestimates = c(m, p, q, 9,-0.9,3))
-
-#GBMe<- GBM(exports_france_value_billions,shock = "exp",nshock = 2,prelimestimates = c(m, p, q, 9,-0.3,3,21,-0.1,-1))
-
-#pred_GBMe<- predict(GBMe, newx=c(1:30))
-#pred_GBMe.inst<- make.instantaneous(pred_GBMe)
-
-#plot(cumsum(exports_france_value_billions), type= "b",xlab="Quarter", ylab="Cumulative revenues",  pch=16, lty=3, cex=0.6, xlim=c(1,30))
-#lines(pred_GBMe, lwd=2, col=2)
-
-#plot(tw, type= "b",xlab="Quarter", ylab="Quarterly revenues",  pch=16, lty=3, cex=0.6, xlim=c(1,30))
-#lines(pred_GBMe.inst, lwd=2, col=2)
+#exponential shock
 
 
+### 1 Shock
+GBMe <- GBM(exports_france_value_billions, shock = "exp",nshock = 1,prelimestimates = c(m, p, q, 10,-1,95),oos=5)
+summary(GBMe)
 
+
+### 2 Shocks (best attempt)
+GBMe2 <- GBM(exports_france_value_billions, shock = "exp",nshock = 2,prelimestimates = c(GBMe$Estimate[1,1], GBMe$Estimate[2,1], GBMe$Estimate[3,1], GBMe$Estimate[4,1],GBMe$Estimate[5,1],GBMe$Estimate[6,1],20,-0.5,-0.5),oos=5, display = T)
+summary(GBMe2)
+
+pred_gbm<- predict(GBMe2, newx = c(1:30)) 
+pred_gbm.inst<- make.instantaneous(pred_gbm)
+
+plot(exports_france_value_billions, type= "b",main="France wine exports fitted with BM", xlab="Year", ylab="Value (in millions of $",xaxt="n", pch=16, lty=3, lwd=2, cex=0.6,ylim=c(5,15))
+lines(pred_gbm.inst, lwd=2, col=2)
+axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
+
+
+
+### The shocks are really hard to adjust since the 
+# function just changes the estimates itself
+
+
+
+
+
+####
+#GGM
+####
+
+GGM1 <- GGM(exports_france_value_billions,prelimestimates = c(m, 0.001, 0.01, p, q),oos=5)
+summary(GGM1)
+
+
+
+### PLOT
+pred_GGM1<- predict(GGM1, newx=c(1:30))
+pred_GGM1.inst<- make.instantaneous(pred_GGM1)
+
+plot(exports_france_value_billions, type= "b",xlab="Time", ylab="Billions of €",  pch=16, lty=3, cex=0.6, xlim=c(1,30))
+lines(pred_GGM1.inst, lwd=2, col=2) ## ggm
+lines(pred_gbm.inst, lwd=2, col=3) ##gbm with shocks
 
 
 
@@ -311,11 +349,11 @@ GBMe<- GBM(exports_france_value_billions, shock = "exp",nshock = 1,prelimestimat
 #GAM
 ####
 
+## I take all the regressors from the multiple regression
 
-g1 = gam(exports_france_value_billions~tt+consumption_world+consumption_france+gdp_france_billions+production_france+production_italy+production_spain+total_exp_france_millions+population_france_millions+unemployment_france+exports_france_volume)
-summary(g1)
-AIC(g1) #=> 13.42 it's the same as multiple regression because we didn't add splines
-
+g1 = gam(exports_france_value_billions ~ s(tt) + s(gdp_france_billions) + s(production_france) + s(total_exp_france_millions) + s(population_france_millions))
+summary(g1) 
+AIC(g1) #=> 16.63996 after adding splines ((compared to 5.982558 for the multiple regression))
 
 #Perform stepwise selection using gam scope
 
@@ -326,7 +364,7 @@ new_data <- data.frame(exports_france_value_billions = exports_france_value_bill
 sc = gam.scope(new_data, response=1, arg=c("df=2","df=3","df=4"))
 g2<- step.Gam(g1, scope=sc, trace=T)
 summary(g2)
-AIC(g2) #-23
+AIC(g2) # 16.63996 just as before
 
 par(mfrow=c(3,3))
 plot(g2, se=T)
@@ -342,10 +380,14 @@ dev.off()
 #g3 here is stepwise multiple regression
 g3 = gam(exports_france_value_billions~tt+gdp_france_billions+production_france+total_exp_france_millions+population_france_millions)
 summary(g3)
-AIC(g3) #5.98
+AIC(g3) #5.98 
 
-new_data2 <- data.frame(exports_france_value_billions = exports_france_value_billions, tt=tt, gdp_france_billions = gdp_france_billions, production_france = production_france, total_exp_france_millions = total_exp_france_millions , population_france_millions = population_france_millions)
-sc = gam.scope(new_data2, response=1, arg=c("df=2","df=3","df=4"))
+
+
+
+## tried removing , production_france = production_france
+new_data3 <- data.frame(exports_france_value_billions = exports_france_value_billions, tt=tt, gdp_france_billions = gdp_france_billions, total_exp_france_millions = total_exp_france_millions , population_france_millions = population_france_millions)
+sc = gam.scope(new_data3, response=1, arg=c("df=2","df=3","df=4"))
 g<- step.Gam(g3, scope=sc, trace=T)
 summary(g3) #here the stepwise change nothing 
 AIC(g3) 
