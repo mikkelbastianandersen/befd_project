@@ -147,7 +147,7 @@ summary(fit1)
 AIC(fit1) #=> 54.77
 
 ##plot of the model
-plot(tt, exports_france_value_billions, main = "France wine exports fitted with a linear regression model", xlab="Year", ylab="Value (in millions of $)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
+plot(tt, exports_france_value_billions, main = "France wine exports fitted with a linear regression model", xlab="Year", ylab="Value (in billions of €)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
 lines(fitted(fit1), col=3)
 axis(side = 1, at = seq(1, length(years), by = 5), labels = selected_years)
 
@@ -183,7 +183,7 @@ fit4 <- lm(exports_france_value_billions~tt+gdp_france_billions+production_franc
 summary(fit4)
 AIC(fit4)
 
-plot(exports_france_value_billions, type= "b",main="France wine exports forecast with stepwise regression", xlab="Year", ylab="Value (in millions of $)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
+plot(exports_france_value_billions, type= "b",main="France wine exports forecast with stepwise regression", xlab="Year", ylab="Value (in billions of €)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
 lines(fitted(fit4), col=2)
 axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 
@@ -227,7 +227,7 @@ AIC(auto.a) #=> AIC = 52.43
 checkresiduals(auto.a)
 
 #plot target and the fitted model
-plot(exports_france_value_billions, type= "b",main="France wine exports fitted with ARIMA(0,1,0)", xlab="Year", ylab="Value (in millions of $)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
+plot(exports_france_value_billions, type= "b",main="France wine exports fitted with ARIMA(0,1,0)", xlab="Year", ylab="Value (in billions of €)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
 lines(fitted(auto.a), col=2)
 axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 
@@ -240,7 +240,7 @@ autoplot(forecast(auto.a))
 year_forecast = 5
 forecast.ARIMA = forecast(auto.a)
 
-plot(exports_france_value_billions,xlim=c(0,23+year_forecast),ylim=c(5,20),type= "b",main="France wine exports forecast", xlab="Year", ylab="Value (in millions of $)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
+plot(exports_france_value_billions,xlim=c(0,23+year_forecast),ylim=c(5,20),type= "b",main="France wine exports forecast", xlab="Year", ylab="Value (in billions of €)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
 
 lines(forecast.ARIMA$upper[,2],col="blue",lty=2,type= "b",pch=16, lwd=2, cex=0.6)
 lines(forecast.ARIMA$mean,col="red",lty=2,type= "b",pch=16, lwd=2, cex=0.6)
@@ -268,11 +268,11 @@ summary(bm_exports_france_value_billions)
 pred_bm<- predict(bm_exports_france_value_billions, newx = c(1:30)) #newx : time windows
 pred.inst<- make.instantaneous(pred_bm)
 
-plot(cumsum(exports_france_value_billions),type= "b",main="Cumulative sum of wine exports and BM", xlab="Year", ylab="Cumulative value (in millions of $)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
+plot(cumsum(exports_france_value_billions),type= "b",main="Cumulative sum of wine exports and BM", xlab="Year", ylab="Cumulative value (in billions of €)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
 lines(pred_bm, lwd=2, col=2)
 axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 
-plot(exports_france_value_billions, type= "b",main="France wine exports fitted with BM", xlab="Year", ylab="Value (in millions of $",xaxt="n", pch=16, lty=3, lwd=2, cex=0.6,ylim=c(5,15))
+plot(exports_france_value_billions, type= "b",main="France wine exports fitted with BM", xlab="Year", ylab="Value (in billions of €",xaxt="n", pch=16, lty=3, lwd=2, cex=0.6,ylim=c(5,15))
 lines(pred.inst, lwd=2, col=2)
 axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 
@@ -298,20 +298,46 @@ q = 3.506564e-02
 
 
 ### 1 Shock
-GBMe <- GBM(exports_france_value_billions, shock = "exp",nshock = 1,prelimestimates = c(m, p, q, 10,-1,95),oos=5)
+GBMe <- GBM(exports_france_value_billions
+            , shock = "exp"
+            ,nshock = 1
+            ,prelimestimates = c(5.573871e+03
+                                 , 9.234885e-04
+                                 , 3.300564e-02
+                                 , 9.4
+                                 ,-1.7
+                                 ,-5.4)
+            ,oos=5
+            , display = T)
+
 summary(GBMe)
 
 
 ### 2 Shocks (best attempt)
-GBMe2 <- GBM(exports_france_value_billions, shock = "exp",nshock = 2,prelimestimates = c(GBMe$Estimate[1,1], GBMe$Estimate[2,1], GBMe$Estimate[3,1], GBMe$Estimate[4,1],GBMe$Estimate[5,1],GBMe$Estimate[6,1],20,-0.5,-0.5),oos=5, display = T)
+GBMe2 <- GBM(exports_france_value_billions
+             , shock = "exp",nshock = 2
+             ,prelimestimates = c(GBMe$Estimate[1,1]
+                                  , GBMe$Estimate[2,1]
+                                  , GBMe$Estimate[3,1]
+                                  , 9
+                                  ,GBMe$Estimate[5,1]
+                                  ,GBMe$Estimate[6,1]
+                                  ,20.5,-1,-1)
+             ,oos=5
+             , display = T)
+
+
 summary(GBMe2)
 
 pred_gbm<- predict(GBMe2, newx = c(1:30)) 
 pred_gbm.inst<- make.instantaneous(pred_gbm)
+pred_gbm.inst
 
-plot(exports_france_value_billions, type= "b",main="France wine exports fitted with BM", xlab="Year", ylab="Value (in millions of $",xaxt="n", pch=16, lty=3, lwd=2, cex=0.6,ylim=c(5,15))
+plot(exports_france_value_billions, type= "b",main="France wine exports fitted with BM", xlab="Year", ylab="Value (in billions of €",xaxt="n", pch=16, lty=3, lwd=2, cex=0.6,ylim=c(5,15))
 lines(pred_gbm.inst, lwd=2, col=2)
 axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
+
+
 
 
 
@@ -338,8 +364,10 @@ pred_GGM1.inst<- make.instantaneous(pred_GGM1)
 plot(exports_france_value_billions, type= "b",xlab="Time", ylab="Billions of €",  pch=16, lty=3, cex=0.6, xlim=c(1,30))
 lines(pred_GGM1.inst, lwd=2, col=2) ## ggm
 lines(pred_gbm.inst, lwd=2, col=3) ##gbm with shocks
-
-
+legend(x = "topright",          # Position
+       legend = c("GGM", "GBM with shocks"),  # Legend texts
+       col = c(2, 3),           # Line colors
+       lwd = 2)                 # Line width)
 
 
 
