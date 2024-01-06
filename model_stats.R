@@ -79,35 +79,23 @@ mae(exports_france_value_billions[20:23],pred_test)
 ########################
 #### Multiple Regression
 ########################
-
-mult_reg <- lm(exports_france_value_billions~tt+consumption_world+consumption_france+gdp_france_billions+production_france+production_italy+production_spain+total_exp_france_millions+population_france_millions+unemployment_france+exports_france_volume)
-summary(mult_reg)
-AIC(mult_reg) #=> 13.42
-
-
-stepwise_reg <- step(mult_reg, direction="both")
-summary(stepwise_reg)
-AIC(stepwise_reg) #=> 4.09 BETTER
-
-#exports_france_volume non-significant we can remove it even if the AIC goes a little up
-
+lm(exports_france_value_billions~tt+gdp_france_billions+total_exp_france_millions+unemployment_france)
 
 ## Final Multiple Regression
-# Includes: time, gdp, production, total exports france, population
+# Includes: time, gdp, total exports france, unemployment_france
 final_mreg <- lm(exports_france_value_billions~tt
                  +gdp_france_billions
-                 +production_france+total_exp_france_millions
-                 +population_france_millions)
+                 +total_exp_france_millions
+                 +unemployment_france)
 summary(final_mreg)
-AIC(final_mreg) #=> 5.98 
+AIC(final_mreg) #=> 21.01
 
 
 ## Final Multiple Regression on training set
 final_mreg_train <- lm(exp_france_value~tt_train
                        +gdp_france_value_dollars
-                       +prod_france_volume
                        +total_exp_france_dollars
-                       +population_france, data = training_data)
+                       +unemployment_france, data = training_data)
 
 
 
@@ -118,9 +106,8 @@ test_data
 
 pred_mreg_test <- predict(final_mreg_train,data.frame(tt_train=c(20,21,22,23), 
                                                       gdp_france_value_dollars = test_data$gdp_france_value_dollars,
-                                                      prod_france_volume = test_data$prod_france_volume,
                                                       total_exp_france_dollars = test_data$total_exp_france_dollars,
-                                                      population_france = test_data$population_france
+                                                      unemployment_france = test_data$unemployment_france
                                                       ))
 pred_mreg_test <- pred_mreg_test/1000000000
 
@@ -131,6 +118,9 @@ mae(exports_france_value_billions[20:23],pred_mreg_test)
 
 
 
+plot(exports_france_value_billions, type= "b",main="France wine exports forecast with stepwise regression on test set", xlab="Year", ylab="Value (in billions of €)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
+lines(20:23,pred_mreg_test, col=2)
+axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 
 
 
@@ -181,7 +171,7 @@ q <- bm_train$Estimate[3,1]
 ### m and p are not significant
 
 ### The predictions for 2019 are found by calculating z(20)-z(19)
-### where z(t) is the cumulative fitted value using the parameters from bm_trai
+### where z(t) is the cumulative fitted value using the parameters from bm_train
 bm_preds <- c(0,0,0,0)
 bm_preds[1] <- m*((1-exp(-(p+q)*20))/(1+q/p*exp(-(p+q)*20)))-m*((1-exp(-(p+q)*19))/(1+q/p*exp(-(p+q)*19)))
 bm_preds[2] <- m*((1-exp(-(p+q)*21))/(1+q/p*exp(-(p+q)*21)))-m*((1-exp(-(p+q)*20))/(1+q/p*exp(-(p+q)*20)))

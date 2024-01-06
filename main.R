@@ -16,10 +16,6 @@
 # Generalized Bass Model (GBM) - 
 
 ####################
-
-
-
-####################
 # Import libraries #
 ####################
 
@@ -31,7 +27,7 @@ library(lmtest)
 library(forecast)
 library(fpp2)
 library(gam)
-
+library(Metrics)
 
 ####################
 #    Import Data   #
@@ -66,8 +62,6 @@ exports_france_value_billions = as.numeric(exports_france_value)/1000000000
 
 ### from 2000 to 2022
 selected_years <- data$year[seq(1, length(data$year), by = 5)]
-
-
 
 
 ####################
@@ -159,8 +153,8 @@ resfit1<- residuals(fit1)
 plot(resfit1,xlab="Time", ylab="residuals",xaxt="n", pch=20, lty=5, lwd=5, cex=0.6,col = "blue")
 axis(side = 1, at = seq(1, length(years), by = 5), labels = selected_years)
 
-
-
+rmse(exports_france_value_billions,fitted(fit1))
+mae(exports_france_value_billions,fitted(fit1))
 
 
 
@@ -179,21 +173,51 @@ AIC(fit3) #=> 4.09 BETTER
 
 #exports_france_volume non-significant we can remove it even if the AIC goes a little up
 
-fit4 <- lm(exports_france_value_billions~tt+gdp_france_billions+production_france+total_exp_france_millions+population_france_millions)
+fit4 <- lm(exports_france_value_billions~tt+gdp_france_billions+total_exp_france_millions+unemployment_france)
 summary(fit4)
 AIC(fit4)
+vif(fit4)
 
 plot(exports_france_value_billions, type= "b",main="France wine exports forecast with stepwise regression", xlab="Year", ylab="Value (in billions of €)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
 lines(fitted(fit4), col=2)
 axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 
+#### Testing if the residuals are autocorrelated
+dwtest(fit4)
+
+#### Plotting the residuals
+resfit1<- residuals(fit4)
+plot(resfit1,main="Residuals graph",xlab="Year", ylab="Value",xaxt="n", pch=20, lty=5, lwd=5, cex=0.6,col = "blue")
+axis(side = 1, at = seq(1, length(years), by = 5), labels = selected_years)
 
 
 
 
+rmse(exports_france_value_billions,fitted(fit4))
+mae(exports_france_value_billions,fitted(fit4))
+
+#####try all possible configurationhttp://127.0.0.1:28797/graphics/plot_zoom_png?width=603&height=421
+
+#variables : 
+
+#tt
+#gdp_france_billions
+#production_france
+#total_exp_france_millions
+#population_france_millions
 
 
+fit5 <- lm(exports_france_value_billions~tt+total_exp_france_millions)
+summary(fit5)
+AIC(fit5)
+vif(fit5)
 
+plot(exports_france_value_billions, type= "b",main="France wine exports forecast with stepwise regression", xlab="Year", ylab="Value (in billions of €)", xaxt="n", pch=16, lty=3, lwd=2, cex=0.6)
+lines(fitted(fit5), col=2)
+axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
+
+rmse(exports_france_value_billions,fitted(fit5))
+mae(exports_france_value_billions,fitted(fit5))
 
 
 #########
@@ -248,7 +272,8 @@ lines(forecast.ARIMA$lower[,2],col="blue",lty=2,type= "b",pch=16, lwd=2, cex=0.6
 legend("topright",legend=c("Upper and lower bands", "Mean forecasting"),col=c("blue","red"),pch=3,lty = 1, lwd = 2, cex = 0.6)
 axis(side = 1, at = seq(1, length(data$year)+5, by = 5), labels = c(selected_years,c(2025)))
 
-
+rmse(exports_france_value_billions,fitted(auto.a))
+mae(exports_france_value_billions,fitted(auto.a))
 
 
 
@@ -272,11 +297,12 @@ plot(cumsum(exports_france_value_billions),type= "b",main="Cumulative sum of win
 lines(pred_bm, lwd=2, col=2)
 axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 
-plot(exports_france_value_billions, type= "b",main="France wine exports fitted with BM", xlab="Year", ylab="Value (in billions of €",xaxt="n", pch=16, lty=3, lwd=2, cex=0.6,ylim=c(5,15))
+plot(exports_france_value_billions, type= "b",main="France wine exports fitted with BM", xlab="Year", ylab="Value (in billions of €)",xaxt="n", pch=16, lty=3, lwd=2, cex=0.6,ylim=c(5,15))
 lines(pred.inst, lwd=2, col=2)
 axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 
-
+rmse(exports_france_value_billions,pred.inst[0:23])
+mae(exports_france_value_billions,pred.inst[0:23])
 
 
 
@@ -296,32 +322,42 @@ q = 3.506564e-02
 
 #exponential shock
 
-
 ### 1 Shock
-GBMe <- GBM(exports_france_value_billions
-            , shock = "exp"
-            ,nshock = 1
-            ,prelimestimates = c(5.573871e+03
-                                 , 9.234885e-04
-                                 , 3.300564e-02
-                                 , 9.4
-                                 ,-1.7
-                                 ,-5.4)
-            ,oos=5
-            , display = T)
+GBMe1 <- GBM(exports_france_value_billions
+             , shock = "exp"
+             ,nshock = 1
+             ,prelimestimates = c(5.573871e+03
+                                  , 9.234885e-04
+                                  , 3.300564e-02
+                                  , 9.4
+                                  ,-1.7
+                                  ,-5.4)
+             ,oos=5
+             , display = T)
 
-summary(GBMe)
+summary(GBMe1)
+
+
+pred_gbm1<- predict(GBMe1, newx = c(1:30)) 
+pred_gbm1.inst<- make.instantaneous(pred_gbm1)
+
+plot(exports_france_value_billions, type= "b",main="France wine exports fitted with GBM (2 shocks)", xlab="Year", ylab="Value (in billions of €)",xaxt="n", pch=16, lty=3, lwd=2, cex=0.6,ylim=c(5,15))
+lines(pred_gbm1.inst, lwd=2, col=2)
+axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
+
+rmse(exports_france_value_billions,pred_gbm1.inst[0:23])
+mae(exports_france_value_billions,pred_gbm1.inst[0:23])
 
 
 ### 2 Shocks (best attempt)
 GBMe2 <- GBM(exports_france_value_billions
              , shock = "exp",nshock = 2
-             ,prelimestimates = c(GBMe$Estimate[1,1]
-                                  , GBMe$Estimate[2,1]
-                                  , GBMe$Estimate[3,1]
+             ,prelimestimates = c(GBMe1$Estimate[1,1]
+                                  , GBMe1$Estimate[2,1]
+                                  , GBMe1$Estimate[3,1]
                                   , 9
-                                  ,GBMe$Estimate[5,1]
-                                  ,GBMe$Estimate[6,1]
+                                  ,GBMe1$Estimate[5,1]
+                                  ,GBMe1$Estimate[6,1]
                                   ,20.5,-1,-1)
              ,oos=5
              , display = T)
@@ -329,21 +365,16 @@ GBMe2 <- GBM(exports_france_value_billions
 
 summary(GBMe2)
 
-pred_gbm<- predict(GBMe2, newx = c(1:30)) 
-pred_gbm.inst<- make.instantaneous(pred_gbm)
-pred_gbm.inst
 
-plot(exports_france_value_billions, type= "b",main="France wine exports fitted with BM", xlab="Year", ylab="Value (in billions of €",xaxt="n", pch=16, lty=3, lwd=2, cex=0.6,ylim=c(5,15))
-lines(pred_gbm.inst, lwd=2, col=2)
+pred_gbm2<- predict(GBMe2, newx = c(1:30)) 
+pred_gbm2.inst<- make.instantaneous(pred_gbm2)
+
+plot(exports_france_value_billions, type= "b",main="France wine exports fitted with GBM (2 shocks)", xlab="Year", ylab="Value (in billions of €)",xaxt="n", pch=16, lty=3, lwd=2, cex=0.6,ylim=c(5,15))
+lines(pred_gbm2.inst, lwd=2, col=2)
 axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
 
-
-
-
-
-### The shocks are really hard to adjust since the 
-# function just changes the estimates itself
-
+rmse(exports_france_value_billions,pred_gbm2.inst[0:23])
+mae(exports_france_value_billions,pred_gbm2.inst[0:23])
 
 
 
@@ -361,13 +392,55 @@ summary(GGM1)
 pred_GGM1<- predict(GGM1, newx=c(1:30))
 pred_GGM1.inst<- make.instantaneous(pred_GGM1)
 
-plot(exports_france_value_billions, type= "b",xlab="Time", ylab="Billions of €",  pch=16, lty=3, cex=0.6, xlim=c(1,30))
+plot(exports_france_value_billions, type= "b",xlab="Year", ylab="Value (in billions of €)", xaxt="n", pch=16, lty=3, cex=0.6, xlim=c(1,30))
 lines(pred_GGM1.inst, lwd=2, col=2) ## ggm
 lines(pred_gbm.inst, lwd=2, col=3) ##gbm with shocks
-legend(x = "topright",          # Position
+legend(x = "topleft",          # Position
        legend = c("GGM", "GBM with shocks"),  # Legend texts
        col = c(2, 3),           # Line colors
        lwd = 2)                 # Line width)
+axis(side = 1, at = seq(1, length(data$year), by = 5), labels = selected_years)
+
+
+rmse(exports_france_value_billions,pred_GGM1.inst[0:23])
+mae(exports_france_value_billions,pred_GGM1.inst[0:23])
+
+
+##################
+#Gradient boosting
+##################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
